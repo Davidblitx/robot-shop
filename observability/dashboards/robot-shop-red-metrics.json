@@ -1,0 +1,134 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "Core Services Overview (Web, Catalogue, Cart, Payment)",
+      "type": "row"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "title": "Rate: Network Throughput / Request Rate (Receive Bytes/sec)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\"}[1m])) by (pod)",
+          "legendFormat": "{{pod}} (rx bytes/s)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "Bps"
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "title": "Errors: Container Restart Count & Pod Health",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\"}) by (pod)",
+          "legendFormat": "{{pod}} restarts",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars"
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "title": "Duration / Latency: CPU Utilization (Cores)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\", container!=\"\"}[1m])) by (pod)",
+          "legendFormat": "{{pod}} cpu",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "cores"
+        }
+      }
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "title": "Duration / Saturation: Memory Working Set (MB)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\", container!=\"\"}) by (pod) / (1024 * 1024)",
+          "legendFormat": "{{pod}} (MB)",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth"
+          },
+          "unit": "decbytes"
+        }
+      }
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["robot-shop", "red-metrics", "capstone2"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "title": "Robot Shop - RED Metrics (Web, Catalogue, Cart, Payment)",
+  "uid": "robot-shop-red"
+}

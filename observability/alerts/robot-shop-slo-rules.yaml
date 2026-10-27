@@ -1,0 +1,48 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: robot-shop-slo-alerts
+  namespace: monitoring
+  labels:
+    release: prometheus
+    role: alert-rules
+spec:
+  groups:
+    - name: robot-shop-slo.rules
+      rules:
+        - alert: RobotShopPaymentAvailabilitySLOBreached
+          expr: (kube_pod_status_ready{namespace="robot-shop", condition="true", pod=~"payment-.*"} == 0) or (absent(kube_pod_status_ready{namespace="robot-shop", condition="true", pod=~"payment-.*"}) == 1)
+          for: 30s
+          labels:
+            severity: critical
+            service: payment
+            tier: backend
+            slo: "99.5%-availability"
+          annotations:
+            summary: "Payment Service SLO Error Budget Breached"
+            description: "Payment service is failing readiness or is unavailable in robot-shop namespace. 99.5% SLO error budget is rapidly burning."
+            runbook_url: "https://github.com/Davidblitx/robot-shop/blob/main/RUNBOOK.md#robotshoppaymentavailabilityslobreached"
+
+        - alert: RobotShopWebAvailabilitySLOBreached
+          expr: (kube_pod_status_ready{namespace="robot-shop", condition="true", pod=~"web-.*"} == 0) or (absent(kube_pod_status_ready{namespace="robot-shop", condition="true", pod=~"web-.*"}) == 1)
+          for: 30s
+          labels:
+            severity: critical
+            service: web
+            tier: frontend
+            slo: "99.0%-availability"
+          annotations:
+            summary: "Web Ingress Service SLO Error Budget Breached"
+            description: "Web frontend ingress service is unavailable or unready in robot-shop namespace. 99.0% SLO error budget is burning."
+            runbook_url: "https://github.com/Davidblitx/robot-shop/blob/main/RUNBOOK.md#robotshopwebavailabilityslobreached"
+
+        - alert: RobotShopHighCrashLoopRate
+          expr: sum by (pod) (rate(kube_pod_container_status_restarts_total{namespace="robot-shop"}[5m])) * 60 > 1
+          for: 1m
+          labels:
+            severity: warning
+            tier: infrastructure
+          annotations:
+            summary: "High CrashLoopBackOff restart rate detected in {{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} restarted more than 1 time per minute over the last 5 minutes."
+            runbook_url: "https://github.com/Davidblitx/robot-shop/blob/main/RUNBOOK.md#robotshophighcrashlooprate"

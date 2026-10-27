@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trace-verification-job
+  namespace: monitoring
+spec:
+  ttlSecondsAfterFinished: 600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trace-runner
+          image: python:3.11-slim
+          command: ["python3", "/scripts/trace_critical_workflow.py"]
+          volumeMounts:
+            - name: script-vol
+              mountPath: /scripts
+      volumes:
+        - name: script-vol
+          configMap:
+            name: trace-workflow-script

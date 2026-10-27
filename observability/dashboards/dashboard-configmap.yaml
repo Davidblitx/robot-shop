@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: robot-shop-red-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  robot-shop-red-metrics.json: |-
