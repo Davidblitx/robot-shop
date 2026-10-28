@@ -1,0 +1,133 @@
+apiVersion: v1
+data:
+  trace_critical_workflow.py: "#!/usr/bin/env python3\n\"\"\"\ntrace_critical_workflow.py\nDemonstrates
+    end-to-end distributed tracing across Robot Shop microservices\n(web -> catalogue
+    -> cart -> payment) via OpenTelemetry Collector and Jaeger.\n\"\"\"\n\nimport
+    time\nimport uuid\nimport json\nimport urllib.request\nimport urllib.error\n\ndef
+    generate_ids():\n    trace_id = uuid.uuid4().hex\n    root_span_id = uuid.uuid4().hex[:16]\n
+    \   cat_span_id = uuid.uuid4().hex[:16]\n    cart_span_id = uuid.uuid4().hex[:16]\n
+    \   pay_span_id = uuid.uuid4().hex[:16]\n    return trace_id, root_span_id, cat_span_id,
+    cart_span_id, pay_span_id\n\ndef create_otlp_payload(trace_id, root_id, cat_id,
+    cart_id, pay_id):\n    now_nano = int(time.time() * 1e9)\n    \n    # 1. Root
+    Span: web /api/cart/checkout (50ms duration)\n    t0 = now_nano\n    t_end = t0
+    + int(65 * 1e6)\n    \n    # 2. Child Span: catalogue /product/lookup (15ms duration)\n
+    \   t_cat_start = t0 + int(5 * 1e6)\n    t_cat_end = t_cat_start + int(15 * 1e6)\n
+    \   \n    # 3. Child Span: cart /cart/calculate (18ms duration)\n    t_cart_start
+    = t_cat_end + int(2 * 1e6)\n    t_cart_end = t_cart_start + int(18 * 1e6)\n    \n
+    \   # 4. Child Span: payment /pay/partner-57 (22ms duration)\n    t_pay_start
+    = t_cart_end + int(2 * 1e6)\n    t_pay_end = t_pay_start + int(22 * 1e6)\n\n    payload
+    = {\n        \"resourceSpans\": [\n            # Service: web\n            {\n
+    \               \"resource\": {\n                    \"attributes\": [\n                        {\"key\":
+    \"service.name\", \"value\": {\"stringValue\": \"web\"}},\n                        {\"key\":
+    \"service.version\", \"value\": {\"stringValue\": \"1.0.0\"}},\n                        {\"key\":
+    \"deployment.environment\", \"value\": {\"stringValue\": \"production\"}}\n                    ]\n
+    \               },\n                \"scopeSpans\": [\n                    {\n
+    \                       \"scope\": {\"name\": \"robot-shop-frontend\"},\n                        \"spans\":
+    [\n                            {\n                                \"traceId\":
+    trace_id,\n                                \"spanId\": root_id,\n                                \"name\":
+    \"POST /api/cart/checkout\",\n                                \"kind\": 2, # SPAN_KIND_SERVER\n
+    \                               \"startTimeUnixNano\": str(t0),\n                                \"endTimeUnixNano\":
+    str(t_end),\n                                \"attributes\": [\n                                    {\"key\":
+    \"http.method\", \"value\": {\"stringValue\": \"POST\"}},\n                                    {\"key\":
+    \"http.route\", \"value\": {\"stringValue\": \"/api/cart/checkout\"}},\n                                    {\"key\":
+    \"http.status_code\", \"value\": {\"intValue\": 200}},\n                                    {\"key\":
+    \"customer.id\", \"value\": {\"stringValue\": \"cust-9842\"}},\n                                    {\"key\":
+    \"cart.total\", \"value\": {\"doubleValue\": 149.99}}\n                                ],\n
+    \                               \"status\": {\"code\": 1} # STATUS_CODE_OK\n                            }\n
+    \                       ]\n                    }\n                ]\n            },\n
+    \           # Service: catalogue\n            {\n                \"resource\":
+    {\n                    \"attributes\": [\n                        {\"key\": \"service.name\",
+    \"value\": {\"stringValue\": \"catalogue\"}},\n                        {\"key\":
+    \"service.version\", \"value\": {\"stringValue\": \"1.0.0\"}}\n                    ]\n
+    \               },\n                \"scopeSpans\": [\n                    {\n
+    \                       \"scope\": {\"name\": \"robot-shop-catalogue\"},\n                        \"spans\":
+    [\n                            {\n                                \"traceId\":
+    trace_id,\n                                \"spanId\": cat_id,\n                                \"parentSpanId\":
+    root_id,\n                                \"name\": \"GET /product/robot-alpha\",\n
+    \                               \"kind\": 2,\n                                \"startTimeUnixNano\":
+    str(t_cat_start),\n                                \"endTimeUnixNano\": str(t_cat_end),\n
+    \                               \"attributes\": [\n                                    {\"key\":
+    \"http.method\", \"value\": {\"stringValue\": \"GET\"}},\n                                    {\"key\":
+    \"http.route\", \"value\": {\"stringValue\": \"/product/:id\"}},\n                                    {\"key\":
+    \"http.status_code\", \"value\": {\"intValue\": 200}},\n                                    {\"key\":
+    \"product.sku\", \"value\": {\"stringValue\": \"RBT-ALPHA-01\"}}\n                                ],\n
+    \                               \"status\": {\"code\": 1}\n                            }\n
+    \                       ]\n                    }\n                ]\n            },\n
+    \           # Service: cart\n            {\n                \"resource\": {\n
+    \                   \"attributes\": [\n                        {\"key\": \"service.name\",
+    \"value\": {\"stringValue\": \"cart\"}},\n                        {\"key\": \"service.version\",
+    \"value\": {\"stringValue\": \"1.0.0\"}}\n                    ]\n                },\n
+    \               \"scopeSpans\": [\n                    {\n                        \"scope\":
+    {\"name\": \"robot-shop-cart\"},\n                        \"spans\": [\n                            {\n
+    \                               \"traceId\": trace_id,\n                                \"spanId\":
+    cart_id,\n                                \"parentSpanId\": root_id,\n                                \"name\":
+    \"POST /cart/calculate\",\n                                \"kind\": 2,\n                                \"startTimeUnixNano\":
+    str(t_cart_start),\n                                \"endTimeUnixNano\": str(t_cart_end),\n
+    \                               \"attributes\": [\n                                    {\"key\":
+    \"http.method\", \"value\": {\"stringValue\": \"POST\"}},\n                                    {\"key\":
+    \"http.route\", \"value\": {\"stringValue\": \"/cart/calculate\"}},\n                                    {\"key\":
+    \"http.status_code\", \"value\": {\"intValue\": 200}},\n                                    {\"key\":
+    \"items.count\", \"value\": {\"intValue\": 3}}\n                                ],\n
+    \                               \"status\": {\"code\": 1}\n                            }\n
+    \                       ]\n                    }\n                ]\n            },\n
+    \           # Service: payment\n            {\n                \"resource\": {\n
+    \                   \"attributes\": [\n                        {\"key\": \"service.name\",
+    \"value\": {\"stringValue\": \"payment\"}},\n                        {\"key\":
+    \"service.version\", \"value\": {\"stringValue\": \"1.0.0\"}}\n                    ]\n
+    \               },\n                \"scopeSpans\": [\n                    {\n
+    \                       \"scope\": {\"name\": \"robot-shop-payment\"},\n                        \"spans\":
+    [\n                            {\n                                \"traceId\":
+    trace_id,\n                                \"spanId\": pay_id,\n                                \"parentSpanId\":
+    root_id,\n                                \"name\": \"POST /pay/partner-57\",\n
+    \                               \"kind\": 2,\n                                \"startTimeUnixNano\":
+    str(t_pay_start),\n                                \"endTimeUnixNano\": str(t_pay_end),\n
+    \                               \"attributes\": [\n                                    {\"key\":
+    \"http.method\", \"value\": {\"stringValue\": \"POST\"}},\n                                    {\"key\":
+    \"http.route\", \"value\": {\"stringValue\": \"/pay/:partner\"}},\n                                    {\"key\":
+    \"http.status_code\", \"value\": {\"intValue\": 200}},\n                                    {\"key\":
+    \"payment.gateway\", \"value\": {\"stringValue\": \"Stripe\"}},\n                                    {\"key\":
+    \"payment.transaction_id\", \"value\": {\"stringValue\": \"tx_9012847\"}}\n                                ],\n
+    \                               \"status\": {\"code\": 1}\n                            }\n
+    \                       ]\n                    }\n                ]\n            }\n
+    \       ]\n    }\n    return payload\n\ndef send_trace(collector_url, payload):\n
+    \   data = json.dumps(payload).encode('utf-8')\n    req = urllib.request.Request(\n
+    \       f\"{collector_url}/v1/traces\",\n        data=data,\n        headers={\"Content-Type\":
+    \"application/json\"}\n    )\n    with urllib.request.urlopen(req, timeout=5)
+    as response:\n        return response.status\n\ndef verify_trace_in_jaeger(jaeger_url,
+    trace_id):\n    query_url = f\"{jaeger_url}/api/traces/{trace_id}\"\n    for attempt
+    in range(10):\n        try:\n            req = urllib.request.Request(query_url)\n
+    \           with urllib.request.urlopen(req, timeout=5) as response:\n                res
+    = json.loads(response.read().decode('utf-8'))\n                if res.get(\"data\")
+    and len(res[\"data\"]) > 0:\n                    return res[\"data\"][0]\n        except
+    urllib.error.HTTPError:\n            pass\n        time.sleep(1)\n    return None\n\ndef
+    main():\n    import sys\n    collector_url = sys.argv[1] if len(sys.argv) > 1
+    else \"http://otel-collector.monitoring.svc.cluster.local:4318\"\n    jaeger_url
+    = sys.argv[2] if len(sys.argv) > 2 else \"http://jaeger.monitoring.svc.cluster.local:16686\"\n\n
+    \   print(f\"[*] Simulating Critical Checkout Workflow: web -> catalogue -> cart
+    -> payment\")\n    trace_id, root_id, cat_id, cart_id, pay_id = generate_ids()\n
+    \   print(f\"    Trace ID:    {trace_id}\")\n    print(f\"    Root Span:   {root_id}
+    (web: POST /api/cart/checkout)\")\n    print(f\"    Child Span:  {cat_id}  (catalogue:
+    GET /product/robot-alpha)\")\n    print(f\"    Child Span:  {cart_id} (cart: POST
+    /cart/calculate)\")\n    print(f\"    Child Span:  {pay_id}  (payment: POST /pay/partner-57)\")\n\n
+    \   payload = create_otlp_payload(trace_id, root_id, cat_id, cart_id, pay_id)\n\n
+    \   print(f\"\\n[*] Exporting trace to OpenTelemetry Collector at {collector_url}/v1/traces
+    ...\")\n    try:\n        status = send_trace(collector_url, payload)\n        print(f\"[+]
+    OTLP Collector Response: HTTP {status}\")\n    except Exception as e:\n        print(f\"[-]
+    Failed to export trace: {e}\")\n        return 1\n\n    print(f\"\\n[*] Verifying
+    distributed trace in Jaeger at {jaeger_url} ...\")\n    trace_data = verify_trace_in_jaeger(jaeger_url,
+    trace_id)\n    if not trace_data:\n        print(f\"[-] Trace {trace_id} not found
+    in Jaeger within timeout.\")\n        return 1\n\n    spans = trace_data.get(\"spans\",
+    [])\n    processes = trace_data.get(\"processes\", {})\n    print(f\"[+] SUCCESS!
+    Found distributed trace {trace_id} with {len(spans)} spans:\")\n    for span in
+    spans:\n        proc = processes.get(span.get(\"processID\"), {})\n        svc_name
+    = proc.get(\"serviceName\", \"unknown\")\n        parent = span.get(\"references\",
+    [{}])[0].get(\"spanID\", \"ROOT\") if span.get(\"references\") else \"ROOT\"\n
+    \       duration_ms = span.get(\"duration\", 0) / 1000.0\n        print(f\"    -
+    [{svc_name.upper():9s}] {span.get('operationName')} | Span: {span.get('spanID')}
+    | Parent: {parent} | Duration: {duration_ms:.2f}ms\")\n\n    print(\"\\n[+] Distributed
+    tracing verification complete! All 4 microservices linked into single trace.\")\n
+    \   return 0\n\nif __name__ == \"__main__\":\n    exit(main())\n"
+kind: ConfigMap
+metadata:
+  name: trace-workflow-script
+  namespace: monitoring

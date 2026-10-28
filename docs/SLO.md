@@ -38,4 +38,4 @@ Web SLI query: `avg_over_time(probe_success{job=~"probe/.*robot-shop-web"}[30d])
 
 ## Drill result
 
-<fill in after the drill: outage start, end, duration in minutes, and the percentage of the payment error budget used>
+Self-run drill on 2026-10-28 (see docs/POSTMORTEM.md): payment was scaled to zero at 15:39:35 and was ready again at about 15:46:28, an outage of about 6 minutes 53 seconds. That used about 3.2% of the 216-minute payment error budget (6.9 / 216).
