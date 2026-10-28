@@ -1,134 +1,376 @@
 {
-  "annotations": {
+  "uid": "robot-shop-red",
+  "title": "Robot Shop: Requests, Errors, Latency",
+  "tags": [
+    "robot-shop",
+    "slo"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
     "list": [
       {
-        "builtIn": 1,
-        "datasource": "-- Grafana --",
-        "enable": true,
-        "hide": true,
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
+        "name": "datasource",
+        "label": "Data source",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
       }
     ]
   },
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 1,
-  "id": null,
-  "links": [],
-  "liveNow": false,
   "panels": [
     {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
-      "id": 100,
-      "title": "Core Services Overview (Web, Catalogue, Cart, Payment)",
-      "type": "row"
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 1 },
       "id": 1,
-      "title": "Rate: Network Throughput / Request Rate (Receive Bytes/sec)",
-      "type": "timeseries",
-      "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "sum(rate(container_network_receive_bytes_total{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\"}[1m])) by (pod)",
-          "legendFormat": "{{pod}} (rx bytes/s)",
-          "refId": "A"
-        }
-      ],
+      "type": "stat",
+      "title": "Availability (5m)",
+      "description": "Share of successful HTTP probes against the web service.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth"
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.95
+              },
+              {
+                "color": "green",
+                "value": 0.99
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "unit": "Bps"
+          "expr": "avg(avg_over_time(probe_success{job=~\"probe/.*robot-shop-web\"}[5m]))",
+          "legendFormat": "availability",
+          "refId": "A"
         }
-      }
+      ]
     },
     {
-      "collapsed": false,
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 1 },
       "id": 2,
-      "title": "Errors: Container Restart Count & Pod Health",
-      "type": "timeseries",
-      "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "sum(kube_pod_container_status_restarts_total{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\"}) by (pod)",
-          "legendFormat": "{{pod}} restarts",
-          "refId": "A"
-        }
-      ],
+      "type": "stat",
+      "title": "Error ratio (5m)",
+      "description": "Share of failed HTTP probes.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "bars"
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "unit": "short"
+          "expr": "1 - avg(avg_over_time(probe_success{job=~\"probe/.*robot-shop-web\"}[5m]))",
+          "legendFormat": "errors",
+          "refId": "A"
         }
-      }
+      ]
     },
     {
-      "collapsed": false,
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 8 },
       "id": 3,
-      "title": "Duration / Latency: CPU Utilization (Cores)",
-      "type": "timeseries",
-      "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\", container!=\"\"}[1m])) by (pod)",
-          "legendFormat": "{{pod}} cpu",
-          "refId": "A"
-        }
-      ],
+      "type": "stat",
+      "title": "Payment pods ready",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth"
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "unit": "cores"
+          "expr": "sum(kube_pod_status_ready{namespace=\"robot-shop\",condition=\"true\",pod=~\"payment-.*\"})",
+          "legendFormat": "ready",
+          "refId": "A"
         }
-      }
+      ]
     },
     {
-      "collapsed": false,
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 8 },
       "id": 4,
-      "title": "Duration / Saturation: Memory Working Set (MB)",
-      "type": "timeseries",
-      "datasource": "Prometheus",
-      "targets": [
-        {
-          "expr": "sum(container_memory_working_set_bytes{namespace=\"robot-shop\", pod=~\"(web|catalogue|cart|payment).*\", container!=\"\"}) by (pod) / (1024 * 1024)",
-          "legendFormat": "{{pod}} (MB)",
-          "refId": "A"
-        }
-      ],
+      "type": "stat",
+      "title": "Web pods ready",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "drawStyle": "line",
-            "lineInterpolation": "smooth"
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
           },
-          "unit": "decbytes"
+          "expr": "sum(kube_pod_status_ready{namespace=\"robot-shop\",condition=\"true\",pod=~\"web-.*\"})",
+          "legendFormat": "ready",
+          "refId": "A"
         }
-      }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Requests: user actions per second",
+      "description": "Throughput from the cart and payment business counters.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(items_added{service=\"cart\"}[5m]))",
+          "legendFormat": "cart items added/s",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum(rate(sold_count_total{service=\"payment\"}[5m]))",
+          "legendFormat": "payment items sold/s",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Errors: failed probes by endpoint",
+      "description": "0 means healthy, 1 means every probe failed.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "1 - avg_over_time(probe_success{job=~\"probe/.*robot-shop-web\"}[1m])",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Latency: probe duration",
+      "description": "Time to answer for each probed endpoint.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "probe_duration_seconds{job=~\"probe/.*robot-shop-web\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "HTTP status code by endpoint",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 6,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "probe_http_status_code{job=~\"probe/.*robot-shop-web\"}",
+          "legendFormat": "{{instance}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Pod restarts (15m)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 12,
+        "w": 6,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"robot-shop\"}[15m]))",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ]
     }
-  ],
-  "refresh": "5s",
-  "schemaVersion": 38,
-  "style": "dark",
-  "tags": ["robot-shop", "red-metrics", "capstone2"],
-  "time": {
-    "from": "now-15m",
-    "to": "now"
-  },
-  "title": "Robot Shop - RED Metrics (Web, Catalogue, Cart, Payment)",
-  "uid": "robot-shop-red"
+  ]
 }

@@ -1,0 +1,39 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: robot-shop-web
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  interval: 15s
+  module: http_2xx
+  prober:
+    url: blackbox-prometheus-blackbox-exporter.monitoring.svc.cluster.local:9115
+  targets:
+    staticConfig:
+      static:
+        - http://web.robot-shop.svc.cluster.local:8080/
+        - http://web.robot-shop.svc.cluster.local:8080/api/catalogue/categories
+        - http://web.robot-shop.svc.cluster.local:8080/api/user/uniqueid
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: robot-shop-business-metrics
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  namespaceSelector:
+    matchNames:
+      - robot-shop
+  selector: {}
+  endpoints:
+    - targetPort: 8080
+      path: /metrics
+      interval: 15s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_service_name]
+          regex: cart|payment
+          action: keep
